@@ -1,0 +1,9 @@
+@model (string Label, string Value, string? Subtext, string AccentClass)
+<div class="kpi-card @Model.AccentClass">
+    <div class="kpi-label">@Model.Label</div>
+    <div class="kpi-value">@Model.Value</div>
+    @if (!string.IsNullOrWhiteSpace(Model.Subtext))
+    {
+        <div class="kpi-subtext">@Model.Subtext</div>
+    }
+</div>

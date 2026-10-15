@@ -1,0 +1,9 @@
+@model AssetIQ.Web.ViewModels.DatasetStatusViewModel
+<div class="alert alert-demo d-flex align-items-start gap-2" role="status">
+    <i class="bi bi-database-fill flex-shrink-0" aria-hidden="true"></i>
+    <div>
+        <strong>Rolling Mill dataset data.</strong>
+        Values on this page come from the imported CSV (<span class="fw-semibold">@Model.SourceLabel</span>).
+        They are not live SCADA, real-time sensor feeds, confirmed failures, or machine-learning predictions.
+    </div>
+</div>

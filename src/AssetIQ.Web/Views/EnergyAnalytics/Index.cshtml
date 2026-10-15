@@ -1,0 +1,175 @@
+@model EnergyAnalyticsViewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Energy Analytics";
+    var s = Model.Summary;
+}
+
+<partial name="_DatasetSourceBanner" model="Model.DatasetStatus" />
+<partial name="_DatasetValidationErrors" model="Model.DatasetStatus" />
+
+@if (Model.DatasetStatus.IsValid && s.IsDatasetValid)
+{
+    <div class="alert alert-warning py-2 small" role="note">
+        Energy totals and intensity values are aggregated from imported CSV fields (<code>Energy_kWh</code>, <code>Production_Tons</code>, <code>Energy_Intensity</code>).
+        High consumption alone is not treated as inefficiency without production context.
+    </div>
+
+    <section class="kpi-grid mb-4">
+        <partial name="_KpiCard" model='("Total energy", $"{s.TotalEnergyKwh:N0} kWh", "Sum of Energy_kWh", "kpi-energy")' />
+        <partial name="_KpiCard" model='("Total production", $"{s.TotalProductionTons:N0} tons", "Sum of Production_Tons", "kpi-neutral")' />
+        <partial name="_KpiCard" model='("Plant intensity", s.PlantIntensityKwhPerTon.HasValue ? $"{s.PlantIntensityKwhPerTon:F2} kWh/ton" : "N/A", "Total kWh ÷ total tons", "kpi-energy")' />
+        <partial name="_KpiCard" model='("Sections", s.EnergyKwhBySection.Count.ToString(), "Grouped in dataset", "kpi-neutral")' />
+    </section>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Energy by section</h2>
+                    <span class="small text-muted">Sum kWh</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="energySectionChart" height="240"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Energy by equipment type</h2>
+                    <span class="small text-muted">Sum kWh</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="energyTypeChart" height="240"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-5">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Energy intensity by section</h2>
+                    <span class="small text-muted">kWh per ton (section totals)</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="intensitySectionChart" height="260"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Production vs energy (per asset)</h2>
+                    <span class="small text-muted">Each point = one equipment row</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="productionEnergyChart" height="260"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel-card mb-4">
+        <div class="panel-header">
+            <h2 class="h6 mb-0">Top energy consumers (dataset rows)</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover assetiq-table mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Equipment</th>
+                        <th scope="col">Type / Section</th>
+                        <th scope="col">Energy (kWh)</th>
+                        <th scope="col">Production (t)</th>
+                        <th scope="col">Intensity (kWh/t)</th>
+                        <th scope="col">Power (kW)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in s.TopEnergyConsumers)
+                    {
+                        <tr>
+                            <td><a asp-controller="Equipment" asp-action="Details" asp-route-id="@row.EquipmentCode">@row.EquipmentCode</a></td>
+                            <td class="small">@row.EquipmentTypeKey<br />@row.Section</td>
+                            <td>@row.EnergyKwh.ToString("N0")</td>
+                            <td>@row.ProductionTons.ToString("N0")</td>
+                            <td>@row.EnergyIntensityKwhPerTon.ToString("F2")</td>
+                            <td>@row.PowerKw.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <partial name="_DatasetLimitations" model="Model.DatasetStatus.QualityReport" />
+
+    @section Scripts {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+        <script>
+            (function () {
+                const sectionLabels = @Html.Raw(JsonSerializer.Serialize(s.EnergyKwhBySection.Select(x => x.Label)));
+                const sectionValues = @Html.Raw(JsonSerializer.Serialize(s.EnergyKwhBySection.Select(x => x.Value)));
+                const typeLabels = @Html.Raw(JsonSerializer.Serialize(s.EnergyKwhByEquipmentType.Select(x => x.Label)));
+                const typeValues = @Html.Raw(JsonSerializer.Serialize(s.EnergyKwhByEquipmentType.Select(x => x.Value)));
+                const intensityLabels = @Html.Raw(JsonSerializer.Serialize(s.AvgIntensityBySection.Select(x => x.Label)));
+                const intensityValues = @Html.Raw(JsonSerializer.Serialize(s.AvgIntensityBySection.Select(x => x.Value)));
+                const scatterPoints = @Html.Raw(JsonSerializer.Serialize(s.ProductionVsEnergyPoints.Select(p => new { x = p.ProductionTons, y = p.EnergyKwh, label = p.EquipmentCode })));
+
+                const barOpts = {
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } },
+                    maintainAspectRatio: false
+                };
+
+                new Chart(document.getElementById('energySectionChart'), {
+                    type: 'bar',
+                    data: { labels: sectionLabels, datasets: [{ data: sectionValues, backgroundColor: '#1abc9c' }] },
+                    options: barOpts
+                });
+
+                new Chart(document.getElementById('energyTypeChart'), {
+                    type: 'bar',
+                    data: { labels: typeLabels, datasets: [{ data: typeValues, backgroundColor: '#3498db' }] },
+                    options: { ...barOpts, indexAxis: 'y' }
+                });
+
+                new Chart(document.getElementById('intensitySectionChart'), {
+                    type: 'bar',
+                    data: { labels: intensityLabels, datasets: [{ data: intensityValues, backgroundColor: '#16a085' }] },
+                    options: barOpts
+                });
+
+                new Chart(document.getElementById('productionEnergyChart'), {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: 'Equipment rows',
+                            data: scatterPoints,
+                            backgroundColor: 'rgba(15, 32, 58, 0.35)',
+                            pointRadius: 3
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (ctx) => `${ctx.raw.label}: ${ctx.raw.x} t, ${ctx.raw.y} kWh`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { title: { display: true, text: 'Production_Tons' } },
+                            y: { title: { display: true, text: 'Energy_kWh' } }
+                        },
+                        maintainAspectRatio: false
+                    }
+                });
+            })();
+        </script>
+    }
+}

@@ -1,0 +1,201 @@
+@model MaintenanceListViewModel
+@{
+    ViewData["Title"] = "Maintenance Management";
+}
+
+<partial name="_DatasetSourceBanner" model="Model.DatasetStatus" />
+<partial name="_DatasetValidationErrors" model="Model.DatasetStatus" />
+
+@if (Model.DatasetStatus.IsValid)
+{
+    <div class="alert alert-warning py-2 small" role="note">
+        Imported recommendations below are read-only CSV fields, not created work orders. Application actions are stored in memory for this running app instance only; they are shared by its users and cleared on restart. No historical maintenance events are created.
+    </div>
+
+    @if (TempData["MaintenanceActionMessage"] is string message)
+    {
+        <div class="alert alert-success py-2" role="status">@message</div>
+    }
+    @if (TempData["MaintenanceActionError"] is string error)
+    {
+        <div class="alert alert-danger py-2" role="alert">@error</div>
+    }
+
+    <div class="panel-card mb-3">
+        <div class="panel-header"><h2 class="h6 mb-0">Create application action</h2></div>
+        <div class="panel-body">
+            <form asp-action="CreateAction" method="post" class="row g-3 align-items-end">
+                <div class="col-lg-4">
+                    <label class="form-label" for="equipmentCode">Equipment</label>
+                    <select class="form-select" id="equipmentCode" name="equipmentCode" required>
+                        <option value="">Select equipment</option>
+                        @foreach (var equipment in Model.ActionEquipment)
+                        {
+                            <option value="@equipment.EquipmentCode">@equipment.EquipmentCode · @equipment.EquipmentTypeKey · @equipment.Section</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label" for="description">Action</label>
+                    <input class="form-control" id="description" name="description" maxlength="300" required />
+                </div>
+                <div class="col-lg-2">
+                    <button type="submit" class="btn btn-primary">Create action</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="panel-card mb-3">
+        <div class="panel-header">
+            <h2 class="h6 mb-0">Application actions (@Model.Actions.Count)</h2>
+            <span class="small text-muted">Temporary in-memory records</span>
+        </div>
+        @if (Model.Actions.Count == 0)
+        {
+            <div class="p-3 text-muted">No application actions created in this running instance.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover assetiq-table mb-0">
+                    <thead>
+                        <tr><th scope="col">Equipment</th><th scope="col">Action</th><th scope="col">Created</th><th scope="col">Status</th><th scope="col"></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var action in Model.Actions)
+                        {
+                            <tr>
+                                <td><a asp-controller="Equipment" asp-action="Details" asp-route-id="@action.EquipmentCode">@action.EquipmentCode</a><div class="small text-muted">@action.EquipmentTypeKey · @action.Section</div></td>
+                                <td>@action.Description</td>
+                                <td>@action.CreatedAtLocal.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>
+                                    @action.Status
+                                    @if (action.CompletedAtLocal.HasValue)
+                                    {
+                                        <span class="small text-muted"> · @action.CompletedAtLocal.Value.ToString("yyyy-MM-dd HH:mm")</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (action.Status == "Open")
+                                    {
+                                        <form asp-action="CompleteAction" method="post">
+                                            <input type="hidden" name="id" value="@action.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-success">Mark complete</button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="panel-card mb-3">
+        <div class="panel-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label" for="search">Search</label>
+                    <input class="form-control" id="search" name="search" value="@Model.Search" placeholder="Equipment ID, type, action" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="status">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All</option>
+                        @foreach (var st in Model.Statuses)
+                        {
+                            @if (Model.SelectedStatus == st)
+                            {
+                                <option value="@st" selected="selected">@st</option>
+                            }
+                            else
+                            {
+                                <option value="@st">@st</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="priority">Priority (Risk_Level)</label>
+                    <select class="form-select" id="priority" name="priority">
+                        <option value="">All</option>
+                        @foreach (var pr in Model.Priorities)
+                        {
+                            @if (Model.SelectedPriority == pr)
+                            {
+                                <option value="@pr" selected="selected">@pr</option>
+                            }
+                            else
+                            {
+                                <option value="@pr">@pr</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="section">Section</label>
+                    <select class="form-select" id="section" name="section">
+                        <option value="">All</option>
+                        @foreach (var sec in Model.Sections)
+                        {
+                            @if (Model.SelectedSection == sec)
+                            {
+                                <option value="@sec" selected="selected">@sec</option>
+                            }
+                            else
+                            {
+                                <option value="@sec">@sec</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Apply filters</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="panel-card">
+        <div class="panel-header">
+            <h2 class="h6 mb-0">Imported maintenance recommendations (@Model.WorkOrders.Count)</h2>
+            <span class="small text-muted">Source: CSV fields</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover assetiq-table mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Equipment</th>
+                        <th scope="col">Equipment</th>
+                        <th scope="col">Priority</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Recommendation</th>
+                        <th scope="col">Days since maint.</th>
+                        <th scope="col">Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var wo in Model.WorkOrders)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-controller="Equipment" asp-action="Details" asp-route-id="@wo.EquipmentCode">@wo.EquipmentCode</a>
+                                <div class="small text-muted">@wo.EquipmentTypeKey · @wo.Section</div>
+                            </td>
+                            <td><span class="badge risk-@wo.Priority.ToLowerInvariant()">@wo.Priority</span></td>
+                            <td class="small">@wo.Status</td>
+                            <td class="small">@wo.Recommendation</td>
+                            <td>@wo.MaintenanceDaysAgo.ToString("F0")</td>
+                            <td class="small text-muted">@wo.Source</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <partial name="_DatasetLimitations" model="Model.DatasetStatus.QualityReport" />
+}

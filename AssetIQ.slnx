@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AssetIQ.Business/AssetIQ.Business.csproj" />
+    <Project Path="src/AssetIQ.Data/AssetIQ.Data.csproj" />
+    <Project Path="src/AssetIQ.Web/AssetIQ.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AssetIQ.Tests/AssetIQ.Tests.csproj" />
+  </Folder>
+</Solution>

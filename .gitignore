@@ -1,0 +1,51 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rtifacts/
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+
+## IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+
+## OS
+Thumbs.db
+Desktop.ini
+
+## Secrets and local config
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+*.pfx
+.env
+.env.*
+
+## Logs
+*.log
+
+## Test results
+TestResults/
+coverage/
+
+## Dataset (optional: keep CSV out of git if it contains sensitive plant data)
+# data/rolling-mill/*.csv
+# Local database files and exports
+*.dump
+*.backup
+*.sql.bak
+
+# Local environment-specific settings
+appsettings.*.local.json

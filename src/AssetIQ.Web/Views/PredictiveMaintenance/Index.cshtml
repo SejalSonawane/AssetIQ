@@ -1,0 +1,144 @@
+@model PredictiveMaintenanceViewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Predictive Maintenance";
+    var s = Model.Summary;
+}
+
+<partial name="_DatasetSourceBanner" model="Model.DatasetStatus" />
+<partial name="_DatasetValidationErrors" model="Model.DatasetStatus" />
+
+@if (Model.DatasetStatus.IsValid && s.IsDatasetValid)
+{
+    <div class="alert alert-warning py-2 small" role="note">
+        Condition assessments use <strong>dataset rule bands</strong> (<code>Health_Score</code> → <code>Risk_Level</code> / <code>Maintenance_Flag</code>).
+        There is <strong>no machine-learning model</strong> in this milestone. Flagged assets exclude <em>Monitor</em> recommendations only.
+    </div>
+
+    <section class="kpi-grid mb-4">
+        <partial name="_KpiCard" model='("Assets in file", s.TotalAssets.ToString(), "One row per equipment", "kpi-neutral")' />
+        <partial name="_KpiCard" model='("Flagged for review", s.FlaggedAssetCount.ToString(), "Non-Monitor Maintenance_Flag", "kpi-alert")' />
+        <partial name="_KpiCard" model='("Critical (dataset)", s.RiskLevelCounts.FirstOrDefault(x => x.Label == "Critical")?.Value.ToString() ?? "0", "Risk_Level label", "kpi-critical")' />
+        <partial name="_KpiCard" model='("High (dataset)", s.RiskLevelCounts.FirstOrDefault(x => x.Label == "High")?.Value.ToString() ?? "0", "Risk_Level label", "kpi-high")' />
+    </section>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Risk level counts</h2>
+                    <span class="small text-muted">Dataset labels</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="pmRiskChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Mean vibration by risk</h2>
+                    <span class="small text-muted">Vibration_mm_s</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="pmVibrationChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Mean motor temp by risk</h2>
+                    <span class="small text-muted">Motor_Temp_C</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="pmTempChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel-card">
+        <div class="panel-header">
+            <h2 class="h6 mb-0">Flagged assets — condition &amp; explanations (@s.FlaggedAssets.Count)</h2>
+            <span class="small text-muted">Rule-based / dataset</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover assetiq-table mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Asset</th>
+                        <th scope="col">Risk</th>
+                        <th scope="col">Health</th>
+                        <th scope="col">Sensors (snapshot)</th>
+                        <th scope="col">Assessment source</th>
+                        <th scope="col">Explanation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in s.FlaggedAssets)
+                    {
+                        var e = item.Equipment;
+                        <tr>
+                            <td>
+                                <a asp-controller="Equipment" asp-action="Details" asp-route-id="@e.EquipmentCode">@e.EquipmentCode</a>
+                                <div class="small text-muted">@e.EquipmentTypeKey · @e.Section</div>
+                            </td>
+                            <td><span class="badge risk-@e.RiskLevel.ToLowerInvariant()">@e.RiskLevel</span></td>
+                            <td>@e.HealthScore.ToString("F2")</td>
+                            <td class="small">
+                                Vib @e.VibrationMmS.ToString("F2") mm/s<br />
+                                Motor @e.MotorTempC.ToString("F0") °C · Cur @e.MotorCurrentA.ToString("F0") A
+                            </td>
+                            <td class="small">@item.AssessmentSource</td>
+                            <td class="small">
+                                @item.Explanation
+                                <ul class="mb-0 mt-1 ps-3">
+                                    @foreach (var factor in item.RuleFactors)
+                                    {
+                                        <li>@factor</li>
+                                    }
+                                </ul>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <partial name="_DatasetLimitations" model="Model.DatasetStatus.QualityReport" />
+
+    @section Scripts {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+        <script>
+            (function () {
+                const riskLabels = @Html.Raw(JsonSerializer.Serialize(s.RiskLevelCounts.Select(x => x.Label)));
+                const riskValues = @Html.Raw(JsonSerializer.Serialize(s.RiskLevelCounts.Select(x => x.Value)));
+                const vibLabels = @Html.Raw(JsonSerializer.Serialize(s.AvgVibrationByRisk.Select(x => x.Label)));
+                const vibValues = @Html.Raw(JsonSerializer.Serialize(s.AvgVibrationByRisk.Select(x => x.Value)));
+                const tempLabels = @Html.Raw(JsonSerializer.Serialize(s.AvgMotorTempByRisk.Select(x => x.Label)));
+                const tempValues = @Html.Raw(JsonSerializer.Serialize(s.AvgMotorTempByRisk.Select(x => x.Value)));
+                const palette = ['#c0392b', '#e67e22', '#f1c40f'];
+
+                new Chart(document.getElementById('pmRiskChart'), {
+                    type: 'doughnut',
+                    data: { labels: riskLabels, datasets: [{ data: riskValues, backgroundColor: palette }] },
+                    options: { plugins: { legend: { position: 'bottom' } }, maintainAspectRatio: false }
+                });
+
+                const barOpts = { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, maintainAspectRatio: false };
+                new Chart(document.getElementById('pmVibrationChart'), {
+                    type: 'bar',
+                    data: { labels: vibLabels, datasets: [{ data: vibValues, backgroundColor: '#8e44ad' }] },
+                    options: barOpts
+                });
+                new Chart(document.getElementById('pmTempChart'), {
+                    type: 'bar',
+                    data: { labels: tempLabels, datasets: [{ data: tempValues, backgroundColor: '#e74c3c' }] },
+                    options: barOpts
+                });
+            })();
+        </script>
+    }
+}

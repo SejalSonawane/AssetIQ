@@ -1,0 +1,31 @@
+@{
+    var activeModule = ViewData["ActiveModule"]?.ToString() ?? string.Empty;
+}
+<aside class="app-sidebar" aria-label="Primary navigation">
+    <div class="sidebar-brand">
+        <div class="brand-mark" aria-hidden="true">AI</div>
+        <div>
+            <div class="brand-title">AssetIQ</div>
+            <div class="brand-subtitle">Asset Intelligence</div>
+        </div>
+    </div>
+    <nav class="sidebar-nav">
+        <ul class="nav flex-column">
+            @foreach (var item in AppNavigation.Items)
+            {
+                var isActive = string.Equals(activeModule, item.ModuleKey, StringComparison.OrdinalIgnoreCase);
+                <li class="nav-item">
+                    <a class="nav-link @(isActive ? "active" : "")"
+                       asp-controller="@item.Controller"
+                       asp-action="@item.Action">
+                        <i class="bi @item.Icon" aria-hidden="true"></i>
+                        <span>@item.Label</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
+    <div class="sidebar-footnote">
+        Rolling Mill PoC dataset folder ready at <code>data/rolling-mill/</code>
+    </div>
+</aside>

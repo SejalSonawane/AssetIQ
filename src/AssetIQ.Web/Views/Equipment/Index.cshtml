@@ -1,0 +1,120 @@
+@model EquipmentListViewModel
+@{
+    ViewData["Title"] = "Equipment";
+}
+
+<partial name="_DatasetSourceBanner" model="Model.DatasetStatus" />
+<partial name="_DatasetValidationErrors" model="Model.DatasetStatus" />
+
+@if (Model.DatasetStatus.IsValid)
+{
+    <div class="panel-card mb-3">
+        <div class="panel-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label" for="search">Search</label>
+                    <input class="form-control" id="search" name="search" value="@Model.Search" placeholder="Equipment ID, type, section" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="equipmentType">Equipment type</label>
+                    <select class="form-select" id="equipmentType" name="equipmentType">
+                        <option value="">All</option>
+                        @foreach (var type in Model.EquipmentTypes)
+                        {
+                            @if (Model.SelectedEquipmentType == type)
+                            {
+                                <option value="@type" selected="selected">@type</option>
+                            }
+                            else
+                            {
+                                <option value="@type">@type</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="section">Section</label>
+                    <select class="form-select" id="section" name="section">
+                        <option value="">All</option>
+                        @foreach (var plantSection in Model.Sections)
+                        {
+                            @if (Model.SelectedSection == plantSection)
+                            {
+                                <option value="@plantSection" selected="selected">@plantSection</option>
+                            }
+                            else
+                            {
+                                <option value="@plantSection">@plantSection</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="riskLevel">Risk level</label>
+                    <select class="form-select" id="riskLevel" name="riskLevel">
+                        <option value="">All</option>
+                        @foreach (var risk in Model.RiskLevels)
+                        {
+                            @if (Model.SelectedRiskLevel == risk)
+                            {
+                                <option value="@risk" selected="selected">@risk</option>
+                            }
+                            else
+                            {
+                                <option value="@risk">@risk</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Apply filters</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="panel-card">
+        <div class="panel-header">
+            <h2 class="h6 mb-0">Equipment records (@Model.Items.Count)</h2>
+        </div>
+        @if (Model.Items.Count == 0)
+        {
+            <div class="p-4 text-muted">No equipment matches the current filters.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover assetiq-table mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Equipment ID</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Section</th>
+                            <th scope="col">Health</th>
+                            <th scope="col">Risk</th>
+                            <th scope="col">Recommendation</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@item.EquipmentCode</td>
+                                <td>@item.EquipmentTypeKey</td>
+                                <td>@item.Section</td>
+                                <td>@item.HealthScore.ToString("F1")</td>
+                                <td><span class="badge risk-@item.RiskLevel.ToLowerInvariant()">@item.RiskLevel</span></td>
+                                <td class="small">@item.MaintenanceRecommendation</td>
+                                <td><a asp-action="Details" asp-route-id="@item.EquipmentCode">Details</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <partial name="_DatasetLimitations" model="Model.DatasetStatus.QualityReport" />
+}

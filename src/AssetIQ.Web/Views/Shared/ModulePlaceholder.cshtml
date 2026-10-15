@@ -1,0 +1,36 @@
+@model ModulePageViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<partial name="_DemoBanner" />
+
+<div class="module-placeholder card border-0 shadow-sm">
+    <div class="card-body p-4 p-lg-5">
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <span class="placeholder-icon"><i class="bi bi-layout-text-window-reverse" aria-hidden="true"></i></span>
+            <div>
+                <h2 class="h4 mb-1">@Model.PageHeading</h2>
+                <p class="text-muted mb-0">@Model.Description</p>
+            </div>
+        </div>
+        <div class="row g-4 mt-2">
+            <div class="col-lg-7">
+                <h3 class="h6 text-uppercase text-muted">Planned capabilities</h3>
+                <ul class="placeholder-list">
+                    @foreach (var item in Model.PlannedCapabilities)
+                    {
+                        <li>@item</li>
+                    }
+                </ul>
+            </div>
+            <div class="col-lg-5">
+                <div class="empty-state-panel">
+                    <h3 class="h6">Module status</h3>
+                    <p class="mb-2">Navigation and routing are active. Business logic and dataset-backed views will be added in later approved stages.</p>
+                    <p class="mb-0 small text-muted">No CSV import, PostgreSQL, ML model, or Power Automate integration in this foundation stage.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

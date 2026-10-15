@@ -1,0 +1,24 @@
+@model AssetIQ.Business.Validation.DatasetQualityReport?
+@if (Model is not null)
+{
+    <div class="dataset-limitations card border-0 shadow-sm mt-4">
+        <div class="card-body">
+            <h2 class="h6">Dataset limitations (revalidated at load time)</h2>
+            <ul class="small mb-2">
+                @foreach (var note in Model.LimitationNotes)
+                {
+                    <li>@note</li>
+                }
+            </ul>
+            <p class="small text-muted mb-0">
+                Critical: @Model.CriticalRiskCount / @Model.TotalRecords ·
+                High: @Model.HighRiskCount ·
+                Medium: @Model.MediumRiskCount ·
+                Health_Score = 0: @Model.ZeroHealthScoreCount ·
+                Downtime tiers: @Model.UniqueDowntimeTierCount ·
+                Cost tiers: @Model.UniqueCostTierCount ·
+                One row per equipment ID: @(Model.OneRowPerEquipmentId ? "Yes" : "No")
+            </p>
+        </div>
+    </div>
+}

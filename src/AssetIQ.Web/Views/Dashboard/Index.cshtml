@@ -1,0 +1,189 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    var s = Model.Summary;
+}
+
+<partial name="_DatasetSourceBanner" model="Model.DatasetStatus" />
+<partial name="_DatasetValidationErrors" model="Model.DatasetStatus" />
+
+@if (Model.DatasetStatus.IsValid && s.IsDatasetValid)
+{
+    <section class="kpi-grid mb-4">
+        <partial name="_KpiCard" model='("Total equipment", s.TotalEquipment.ToString(), "Rows in Rolling Mill CSV", "kpi-neutral")' />
+        <partial name="_KpiCard" model='("Critical risk", s.CriticalRiskCount.ToString(), "Dataset Risk_Level label", "kpi-critical")' />
+        <partial name="_KpiCard" model='("High risk", s.HighRiskCount.ToString(), "Dataset Risk_Level label", "kpi-high")' />
+        <partial name="_KpiCard" model='("Medium risk", s.MediumRiskCount.ToString(), "Dataset Risk_Level label", "kpi-neutral")' />
+        <partial name="_KpiCard" model='("Dataset alerts", s.ActiveAlerts.ToString(), "One recommendation row per equipment", "kpi-alert")' />
+        <partial name="_KpiCard" model='("Sum downtime tiers", $"{s.EstimatedDowntimeExposureHours:N0} h", "Sum of tier values — not a forecast", "kpi-neutral")' />
+        <partial name="_KpiCard" model='("Total energy", $"{s.EnergyConsumptionMwh:N1} MWh", "Sum of Energy_kWh in CSV", "kpi-energy")' />
+        <partial name="_KpiCard" model='("Avg intensity", s.EnergyIntensityKwhPerUnit.HasValue ? $"{s.EnergyIntensityKwhPerUnit:F2} kWh/ton" : "N/A", "Total kWh ÷ total production tons", "kpi-energy")' />
+    </section>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Risk distribution</h2>
+                    <span class="small text-muted">Dataset labels</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="riskChart" height="220" aria-label="Risk distribution chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Health score overview</h2>
+                    <span class="small text-muted">Bands in file</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="healthChart" height="220" aria-label="Health score overview chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Maintenance recommendations</h2>
+                    <span class="small text-muted">Maintenance_Flag</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="maintChart" height="220" aria-label="Maintenance recommendations chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-12">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Energy by observation date</h2>
+                    <span class="small text-muted">MWh summed from CSV timestamps (not continuous SCADA)</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="energyChart" height="120" aria-label="Energy by date chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Maintenance context (dataset fields)</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover assetiq-table mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Equipment</th>
+                                <th scope="col">Recommendation</th>
+                                <th scope="col">Context</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in s.RecentMaintenance)
+                            {
+                                <tr>
+                                    <td><a asp-controller="Equipment" asp-action="Details" asp-route-id="@row.EquipmentName">@row.EquipmentName</a></td>
+                                    <td>@row.Activity</td>
+                                    <td class="small">@row.Status</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Lowest health scores (attention list)</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover assetiq-table mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Asset</th>
+                                <th scope="col">Risk</th>
+                                <th scope="col">Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var asset in s.PriorityAssets)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-controller="Equipment" asp-action="Details" asp-route-id="@asset.EquipmentCode">@asset.EquipmentCode</a>
+                                        <div class="small text-muted">@asset.Name</div>
+                                    </td>
+                                    <td><span class="badge risk-@asset.RiskLevel.ToLowerInvariant()">@asset.RiskLevel</span></td>
+                                    <td class="small">@asset.Reason</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_DatasetLimitations" model="s.QualityReport" />
+
+    @section Scripts {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+        <script>
+            (function () {
+                const riskLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(s.RiskDistribution.Select(x => x.Label)));
+                const riskCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(s.RiskDistribution.Select(x => x.Count)));
+                const healthLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(s.HealthOverview.Select(x => x.Label)));
+                const healthCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(s.HealthOverview.Select(x => x.Count)));
+                const maintLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(s.MaintenanceRecommendations.Select(x => x.Label)));
+                const maintCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(s.MaintenanceRecommendations.Select(x => x.Count)));
+                const energyLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(s.EnergyTrend.Select(x => x.Label)));
+                const energyValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(s.EnergyTrend.Select(x => x.Value)));
+
+                new Chart(document.getElementById('riskChart'), {
+                    type: 'doughnut',
+                    data: { labels: riskLabels, datasets: [{ data: riskCounts, backgroundColor: ['#c0392b', '#e67e22', '#f1c40f'], borderWidth: 0 }] },
+                    options: { plugins: { legend: { position: 'bottom' } }, maintainAspectRatio: false }
+                });
+
+                new Chart(document.getElementById('healthChart'), {
+                    type: 'bar',
+                    data: { labels: healthLabels, datasets: [{ data: healthCounts, backgroundColor: '#5b6b7c' }] },
+                    options: { plugins: { legend: { display: false } }, maintainAspectRatio: false }
+                });
+
+                new Chart(document.getElementById('maintChart'), {
+                    type: 'bar',
+                    data: { labels: maintLabels, datasets: [{ data: maintCounts, backgroundColor: '#1abc9c' }] },
+                    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 25, minRotation: 25 } } }, maintainAspectRatio: false }
+                });
+
+                new Chart(document.getElementById('energyChart'), {
+                    type: 'line',
+                    data: {
+                        labels: energyLabels,
+                        datasets: [{
+                            label: 'Energy (MWh)',
+                            data: energyValues,
+                            borderColor: '#1abc9c',
+                            backgroundColor: 'rgba(26, 188, 156, 0.12)',
+                            fill: true,
+                            tension: 0.2
+                        }]
+                    },
+                    options: {
+                        plugins: { legend: { display: false } },
+                        maintainAspectRatio: false
+                    }
+                });
+            })();
+        </script>
+    }
+}

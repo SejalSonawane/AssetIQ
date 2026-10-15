@@ -1,0 +1,140 @@
+@model FailureAnalyticsViewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Failure Analytics";
+    var s = Model.Summary;
+}
+
+<partial name="_DatasetSourceBanner" model="Model.DatasetStatus" />
+<partial name="_DatasetValidationErrors" model="Model.DatasetStatus" />
+
+@if (Model.DatasetStatus.IsValid && s.IsDatasetValid)
+{
+    <div class="alert alert-warning py-2 small" role="note">
+        <code>Failure_Count_Last_Year</code> is an aggregate count field per equipment row, not a detailed failure event log.
+        <code>Estimated_Downtime_Hours</code> and <code>Estimated_Cost_Impact_INR</code> are dataset-provided tier values; the demo file contains four distinct downtime/cost combinations. They are not row-specific engineering estimates or confirmed financial impact.
+    </div>
+
+    <section class="kpi-grid mb-4">
+        <partial name="_KpiCard" model='("Sum failure counts", s.TotalFailureCountSum.ToString("N0"), "Σ Failure_Count_Last_Year", "kpi-neutral")' />
+        <partial name="_KpiCard" model='("Avg per asset", s.AverageFailureCountPerAsset.ToString("F2"), "Mean count field", "kpi-neutral")' />
+        <partial name="_KpiCard" model='("Impact tiers", s.ImpactTiers.Count.ToString(), "Distinct downtime/cost tiers", "kpi-alert")' />
+        <partial name="_KpiCard" model='("Equipment types", s.FailureCountSumByEquipmentType.Count.ToString(), "Grouped in CSV", "kpi-neutral")' />
+    </section>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Failure count sum by equipment type</h2>
+                    <span class="small text-muted">Σ Failure_Count_Last_Year</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="failureTypeChart" height="260"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h2 class="h6 mb-0">Failure count sum by section</h2>
+                    <span class="small text-muted">Σ Failure_Count_Last_Year</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="failureSectionChart" height="260"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel-card mb-4">
+        <div class="panel-header">
+            <h2 class="h6 mb-0">Estimated impact tiers (dataset lookup values)</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover assetiq-table mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Risk_Level</th>
+                        <th scope="col">Estimated downtime (h)</th>
+                        <th scope="col">Estimated cost (INR)</th>
+                        <th scope="col">Equipment rows</th>
+                        <th scope="col">Σ failure counts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var tier in s.ImpactTiers)
+                    {
+                        <tr>
+                            <td><span class="badge risk-@tier.RiskLevel.ToLowerInvariant()">@tier.RiskLevel</span></td>
+                            <td>@tier.EstimatedDowntimeHours.ToString("N0")</td>
+                            <td>@tier.EstimatedCostImpactInr.ToString("N0")</td>
+                            <td>@tier.EquipmentCount</td>
+                            <td>@tier.SumFailureCounts.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="p-3 small text-muted border-top">
+            Summing downtime or cost across all rows double-counts tier placeholders — use tier table for interpretation, not as actual plant losses.
+        </div>
+    </div>
+
+    <div class="panel-card mb-4">
+        <div class="panel-header">
+            <h2 class="h6 mb-0">Highest Failure_Count_Last_Year (top 15 rows)</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover assetiq-table mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Equipment</th>
+                        <th scope="col">Type / Section</th>
+                        <th scope="col">Failures (last year)</th>
+                        <th scope="col">Risk</th>
+                        <th scope="col">Tier downtime / cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in s.HighestFailureCountAssets)
+                    {
+                        <tr>
+                            <td><a asp-controller="Equipment" asp-action="Details" asp-route-id="@e.EquipmentCode">@e.EquipmentCode</a></td>
+                            <td class="small">@e.EquipmentTypeKey<br />@e.Section</td>
+                            <td>@e.FailureCountLastYear.ToString("F0")</td>
+                            <td><span class="badge risk-@e.RiskLevel.ToLowerInvariant()">@e.RiskLevel</span></td>
+                            <td class="small">@e.EstimatedDowntimeHours.ToString("N0") h · ₹@e.EstimatedCostImpactInr.ToString("N0") (tier)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <partial name="_DatasetLimitations" model="Model.DatasetStatus.QualityReport" />
+
+    @section Scripts {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+        <script>
+            (function () {
+                const typeLabels = @Html.Raw(JsonSerializer.Serialize(s.FailureCountSumByEquipmentType.Select(x => x.Label)));
+                const typeValues = @Html.Raw(JsonSerializer.Serialize(s.FailureCountSumByEquipmentType.Select(x => x.Value)));
+                const sectionLabels = @Html.Raw(JsonSerializer.Serialize(s.FailureCountSumBySection.Select(x => x.Label)));
+                const sectionValues = @Html.Raw(JsonSerializer.Serialize(s.FailureCountSumBySection.Select(x => x.Value)));
+                const opts = { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, maintainAspectRatio: false };
+
+                new Chart(document.getElementById('failureTypeChart'), {
+                    type: 'bar',
+                    data: { labels: typeLabels, datasets: [{ data: typeValues, backgroundColor: '#34495e' }] },
+                    options: { ...opts, indexAxis: 'y' }
+                });
+                new Chart(document.getElementById('failureSectionChart'), {
+                    type: 'bar',
+                    data: { labels: sectionLabels, datasets: [{ data: sectionValues, backgroundColor: '#7f8c8d' }] },
+                    options: opts
+                });
+            })();
+        </script>
+    }
+}

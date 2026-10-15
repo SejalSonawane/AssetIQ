@@ -1,0 +1,35 @@
+@model AssetIQ.Web.ViewModels.DatasetStatusViewModel
+@if (!Model.IsValid)
+{
+    <div class="alert alert-danger" role="alert">
+        <h2 class="h6">Dataset could not be loaded</h2>
+        <p class="mb-2">Expected CSV path: <code>@Model.FilePath</code></p>
+        @if (Model.ValidationIssues.Count == 0)
+        {
+            <p class="mb-0">No validation details were returned. Verify the file exists and matches the expected schema.</p>
+        }
+        else
+        {
+            <ul class="mb-0 small">
+                @foreach (var issue in Model.ValidationIssues.Take(20))
+                {
+                    <li>
+                        @if (issue.RowNumber.HasValue)
+                        {
+                            <span>Row @issue.RowNumber — </span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(issue.Field))
+                        {
+                            <span>@issue.Field: </span>
+                        }
+                        @issue.Message
+                    </li>
+                }
+            </ul>
+            @if (Model.ValidationIssues.Count > 20)
+            {
+                <p class="small mt-2 mb-0">Showing first 20 of @Model.ValidationIssues.Count issues.</p>
+            }
+        }
+    </div>
+}

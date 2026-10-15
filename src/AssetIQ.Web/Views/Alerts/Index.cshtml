@@ -1,0 +1,59 @@
+@model AlertsListViewModel
+@{
+    ViewData["Title"] = "Alerts";
+}
+
+<partial name="_DatasetSourceBanner" model="Model.DatasetStatus" />
+<partial name="_DatasetValidationErrors" model="Model.DatasetStatus" />
+
+@if (Model.DatasetStatus.IsValid)
+{
+    <div class="alert alert-warning py-2 small" role="note">
+        Alerts below are <strong>dataset-derived condition recommendations</strong> based on imported risk and maintenance fields.
+        They are <strong>not confirmed equipment failures</strong> and do not indicate that a failure has already occurred.
+    </div>
+
+    <div class="panel-card">
+        <div class="panel-header">
+            <h2 class="h6 mb-0">Dataset alerts (@Model.Alerts.Count)</h2>
+        </div>
+        @if (Model.Alerts.Count == 0)
+        {
+            <div class="p-4 text-muted">No alerts available from the dataset.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover assetiq-table mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Severity</th>
+                            <th scope="col">Equipment</th>
+                            <th scope="col">Type / Section</th>
+                            <th scope="col">Reason</th>
+                            <th scope="col">Suggested action</th>
+                            <th scope="col">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var alert in Model.Alerts)
+                        {
+                            <tr>
+                                <td><span class="badge risk-@alert.Severity.ToLowerInvariant()">@alert.Severity</span></td>
+                                <td>
+                                    <a asp-controller="Equipment" asp-action="Details" asp-route-id="@alert.EquipmentCode">@alert.EquipmentCode</a>
+                                </td>
+                                <td class="small">@alert.EquipmentTypeKey<br />@alert.Section</td>
+                                <td class="small">@alert.Reason</td>
+                                <td class="small">@alert.RecommendedNextStep</td>
+                                <td class="small">@alert.Status</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <partial name="_DatasetLimitations" model="Model.DatasetStatus.QualityReport" />
+}

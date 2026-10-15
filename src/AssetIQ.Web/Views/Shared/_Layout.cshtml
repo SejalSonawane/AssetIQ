@@ -1,0 +1,31 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - AssetIQ</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" crossorigin="anonymous" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/assetiq.css" asp-append-version="true" />
+</head>
+<body class="assetiq-app">
+    <div class="app-shell">
+        <partial name="_Sidebar" />
+        <div class="app-main">
+            <partial name="_TopBar" />
+            <main class="app-content" role="main">
+                @RenderBody()
+            </main>
+            <footer class="app-footer">
+                <span>AssetIQ &mdash; Industrial Asset Intelligence Platform</span>
+                <span class="text-muted">Foundation build &bull; no database connected</span>
+            </footer>
+        </div>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
