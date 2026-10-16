@@ -10,5 +10,7 @@ public class Alert
     public string RecommendedNextStep { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public DateTime RaisedAtUtc { get; set; }
+    public Guid? SourceRowId { get; set; }
     public Equipment? Equipment { get; set; }
+    public CsvImportBatchRow? SourceRow { get; set; }
 }

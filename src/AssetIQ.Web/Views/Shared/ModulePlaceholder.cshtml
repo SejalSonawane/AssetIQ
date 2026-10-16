@@ -14,6 +14,26 @@
                 <p class="text-muted mb-0">@Model.Description</p>
             </div>
         </div>
+        @if (Model.ModuleKey == "settings")
+        {
+            @if (TempData["ImportMessage"] is string importMessage)
+            {
+                <div class="alert alert-success py-2" role="status">@importMessage</div>
+            }
+            @if (TempData["ImportError"] is string importError)
+            {
+                <div class="alert alert-danger py-2" role="alert">@importError</div>
+            }
+            <div class="panel-card mb-4">
+                <div class="panel-header"><h3 class="h6 mb-0">CSV equipment import</h3><span class="small text-muted">Configured dataset</span></div>
+                <div class="panel-body">
+                    <p class="small text-muted mb-3">Import the configured Rolling Mill CSV into PostgreSQL for persisted equipment and maintenance tickets. The original source file remains unchanged.</p>
+                    <form asp-controller="Settings" asp-action="ImportConfiguredCsv" method="post">
+                        <button type="submit" class="btn btn-primary">Import configured CSV</button>
+                    </form>
+                </div>
+            </div>
+        }
         <div class="row g-4 mt-2">
             <div class="col-lg-7">
                 <h3 class="h6 text-uppercase text-muted">Planned capabilities</h3>

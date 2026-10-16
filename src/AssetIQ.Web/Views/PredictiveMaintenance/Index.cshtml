@@ -11,16 +11,21 @@
 @if (Model.DatasetStatus.IsValid && s.IsDatasetValid)
 {
     <div class="alert alert-warning py-2 small" role="note">
-        Condition assessments use <strong>dataset rule bands</strong> (<code>Health_Score</code> → <code>Risk_Level</code> / <code>Maintenance_Flag</code>).
-        There is <strong>no machine-learning model</strong> in this milestone. Flagged assets exclude <em>Monitor</em> recommendations only.
+        Rule explanations use <strong>dataset bands</strong> (<code>Health_Score</code> → <code>Risk_Level</code>).
+        The <strong>ML.NET multiclass classifier</strong> predicts <code>Risk_Level</code> from sensor/context features only (leakage fields excluded).
+        Flagged assets exclude <em>Monitor</em> recommendations.
     </div>
 
     <section class="kpi-grid mb-4">
         <partial name="_KpiCard" model='("Assets in file", s.TotalAssets.ToString(), "One row per equipment", "kpi-neutral")' />
         <partial name="_KpiCard" model='("Flagged for review", s.FlaggedAssetCount.ToString(), "Non-Monitor Maintenance_Flag", "kpi-alert")' />
+        <partial name="_KpiCard" model='("ML agrees w/ label", s.MachineLearningAgreementCount.ToString(), "Holdout-style inference on all rows", "kpi-neutral")' />
+        <partial name="_KpiCard" model='("ML disagreements", s.MachineLearningDisagreementCount.ToString(), "Review feature/label imbalance", "kpi-high")' />
         <partial name="_KpiCard" model='("Critical (dataset)", s.RiskLevelCounts.FirstOrDefault(x => x.Label == "Critical")?.Value.ToString() ?? "0", "Risk_Level label", "kpi-critical")' />
         <partial name="_KpiCard" model='("High (dataset)", s.RiskLevelCounts.FirstOrDefault(x => x.Label == "High")?.Value.ToString() ?? "0", "Risk_Level label", "kpi-high")' />
     </section>
+
+    <partial name="_RiskModelEvaluation" model="s.ModelEvaluation" />
 
     <div class="row g-4 mb-4">
         <div class="col-lg-4">
@@ -71,6 +76,7 @@
                         <th scope="col">Risk</th>
                         <th scope="col">Health</th>
                         <th scope="col">Sensors (snapshot)</th>
+                        <th scope="col">ML prediction</th>
                         <th scope="col">Assessment source</th>
                         <th scope="col">Explanation</th>
                     </tr>
@@ -89,6 +95,17 @@
                             <td class="small">
                                 Vib @e.VibrationMmS.ToString("F2") mm/s<br />
                                 Motor @e.MotorTempC.ToString("F0") °C · Cur @e.MotorCurrentA.ToString("F0") A
+                            </td>
+                            <td class="small">
+                                @if (item.MachineLearningPrediction is { } pred)
+                                {
+                                    <span class="badge risk-@pred.PredictedRiskLevel.ToLowerInvariant()">@pred.PredictedRiskLevel</span>
+                                    <div class="text-muted">@pred.Confidence.ToString("P0") conf · label match: @(pred.MatchesDatasetLabel ? "yes" : "no")</div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">N/A</span>
+                                }
                             </td>
                             <td class="small">@item.AssessmentSource</td>
                             <td class="small">

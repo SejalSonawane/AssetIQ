@@ -1,9 +1,12 @@
 using AssetIQ.Business.Interfaces;
+using AssetIQ.Web.Authorization;
 using AssetIQ.Web.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AssetIQ.Web.Controllers;
 
+[Authorize(Policy = AssetIQPolicies.FailureAnalyticsRead)]
 public class FailureAnalyticsController : Controller
 {
     private readonly IFailureAnalyticsService _failureAnalyticsService;

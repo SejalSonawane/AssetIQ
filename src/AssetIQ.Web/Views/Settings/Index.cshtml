@@ -1,0 +1,44 @@
+@model SettingsViewModel
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="panel-card mb-3">
+    <div class="panel-header">
+        <h2 class="h6 mb-0">Dataset &amp; PostgreSQL import</h2>
+        <span class="small text-muted">Rolling Mill CSV</span>
+    </div>
+    <div class="panel-body">
+        @if (TempData["ImportMessage"] is string message)
+        {
+            <div class="alert alert-success py-2" role="status">@message</div>
+        }
+        @if (TempData["ImportError"] is string error)
+        {
+            <div class="alert alert-danger py-2" role="alert">@error</div>
+        }
+
+        <p class="mb-2">
+            Configured CSV path (relative to the web project):
+            <code>@Model.ConfiguredCsvRelativePath</code>
+        </p>
+        <p class="text-muted small">
+            Import is idempotent for unchanged file content (SHA-256). Equipment identities are preserved on repeat import.
+            After a successful import, ML risk predictions are synced to <code>prediction_results</code> for persisted equipment.
+        </p>
+        <form asp-action="ImportConfiguredCsv" method="post" class="mt-3">
+            <button type="submit" class="btn btn-primary">Import configured CSV into PostgreSQL</button>
+        </form>
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="panel-header"><h2 class="h6 mb-0">Platform notes</h2></div>
+    <div class="panel-body small text-muted">
+        <ul class="mb-0">
+            <li>Database migrations are not applied automatically — run EF Core update manually when ready.</li>
+            <li>ML risk classification uses sensor/context features only; dataset <code>Health_Score</code> and tier labels are excluded from training features.</li>
+            <li>Maintenance tickets require equipment to be imported before ticket creation.</li>
+        </ul>
+    </div>
+</div>

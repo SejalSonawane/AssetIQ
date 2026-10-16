@@ -3,9 +3,8 @@
 }
 <aside class="app-sidebar" aria-label="Primary navigation">
     <div class="sidebar-brand">
-        <div class="brand-mark" aria-hidden="true">AI</div>
+        <img class="brand-logo" src="~/Images/logoblack.png" alt="Hindalco AssetIQ" />
         <div>
-            <div class="brand-title">AssetIQ</div>
             <div class="brand-subtitle">Asset Intelligence</div>
         </div>
     </div>
@@ -13,6 +12,10 @@
         <ul class="nav flex-column">
             @foreach (var item in AppNavigation.Items)
             {
+                if (!AppNavigation.CanAccess(item, User))
+                {
+                    continue;
+                }
                 var isActive = string.Equals(activeModule, item.ModuleKey, StringComparison.OrdinalIgnoreCase);
                 <li class="nav-item">
                     <a class="nav-link @(isActive ? "active" : "")"

@@ -48,6 +48,7 @@ public sealed class ConditionAssessmentDto
     public string Explanation { get; init; } = string.Empty;
     public IReadOnlyList<string> RuleFactors { get; init; } = Array.Empty<string>();
     public bool IsFlaggedForReview { get; init; }
+    public EquipmentRiskPredictionDto? MachineLearningPrediction { get; init; }
 }
 
 public sealed class PredictiveMaintenanceSummaryDto
@@ -56,10 +57,13 @@ public sealed class PredictiveMaintenanceSummaryDto
     public string DataSourceLabel { get; init; } = string.Empty;
     public int TotalAssets { get; init; }
     public int FlaggedAssetCount { get; init; }
+    public int MachineLearningAgreementCount { get; init; }
+    public int MachineLearningDisagreementCount { get; init; }
     public IReadOnlyList<GroupMetricDto> RiskLevelCounts { get; init; } = Array.Empty<GroupMetricDto>();
     public IReadOnlyList<GroupMetricDto> AvgVibrationByRisk { get; init; } = Array.Empty<GroupMetricDto>();
     public IReadOnlyList<GroupMetricDto> AvgMotorTempByRisk { get; init; } = Array.Empty<GroupMetricDto>();
     public IReadOnlyList<ConditionAssessmentDto> FlaggedAssets { get; init; } = Array.Empty<ConditionAssessmentDto>();
+    public RiskModelEvaluationDto? ModelEvaluation { get; init; }
 }
 
 public sealed class FailureImpactTierDto

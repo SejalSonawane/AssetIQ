@@ -7,4 +7,5 @@ public class NavigationItem
     public string Action { get; init; } = "Index";
     public string Icon { get; init; } = string.Empty;
     public string ModuleKey { get; init; } = string.Empty;
+    public IReadOnlyList<string> AllowedRoles { get; init; } = Array.Empty<string>();
 }

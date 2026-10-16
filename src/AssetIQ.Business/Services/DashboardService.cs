@@ -6,10 +6,14 @@ namespace AssetIQ.Business.Services;
 public sealed class DashboardService : IDashboardService
 {
     private readonly IRollingMillDatasetAccessor _datasetAccessor;
+    private readonly IRiskClassificationModelService _riskClassificationModelService;
 
-    public DashboardService(IRollingMillDatasetAccessor datasetAccessor)
+    public DashboardService(
+        IRollingMillDatasetAccessor datasetAccessor,
+        IRiskClassificationModelService riskClassificationModelService)
     {
         _datasetAccessor = datasetAccessor;
+        _riskClassificationModelService = riskClassificationModelService;
     }
 
     public async Task<DashboardSummaryDto> GetSummaryAsync(CancellationToken cancellationToken = default)
@@ -94,6 +98,8 @@ public sealed class DashboardService : IDashboardService
             })
             .ToList();
 
+        var riskModelEvaluation = await _riskClassificationModelService.GetEvaluationAsync(cancellationToken);
+
         return new DashboardSummaryDto
         {
             DataSourceLabel = snapshot.SourceLabel,
@@ -113,7 +119,8 @@ public sealed class DashboardService : IDashboardService
             EnergyTrend = energyByDay,
             RecentMaintenance = recentMaintenance,
             PriorityAssets = priorityAssets,
-            QualityReport = quality
+            QualityReport = quality,
+            RiskModelEvaluation = riskModelEvaluation
         };
     }
 

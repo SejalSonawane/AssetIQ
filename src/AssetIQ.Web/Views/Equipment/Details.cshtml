@@ -40,7 +40,22 @@
                             <dt class="col-6">Failures (last year)</dt><dd class="col-6">@e.FailureCountLastYear.ToString("F0")</dd>
                             <dt class="col-6">Days since maint.</dt><dd class="col-6">@e.MaintenanceDaysAgo.ToString("F0")</dd>
                         </dl>
-                        <p class="text-muted mt-3 mb-0">Risk labels and estimates are dataset fields, not confirmed events or ML outputs.</p>
+                        <p class="text-muted mt-3 mb-0">Risk labels and estimates are dataset fields, not confirmed events.</p>
+                        @if (Model.MachineLearningPrediction is { } ml)
+                        {
+                            <hr />
+                            <h4 class="h6">ML risk prediction (separate from dataset label)</h4>
+                            <dl class="row mb-0">
+                                <dt class="col-6">Predicted risk</dt>
+                                <dd class="col-6"><span class="badge risk-@ml.PredictedRiskLevel.ToLowerInvariant()">@ml.PredictedRiskLevel</span></dd>
+                                <dt class="col-6">Dataset risk</dt>
+                                <dd class="col-6">@ml.DatasetRiskLevel</dd>
+                                <dt class="col-6">Confidence</dt>
+                                <dd class="col-6">@ml.Confidence.ToString("P1")</dd>
+                                <dt class="col-6">Matches dataset</dt>
+                                <dd class="col-6">@(ml.MatchesDatasetLabel ? "Yes" : "No")</dd>
+                            </dl>
+                        }
                     </div>
                 </div>
             </div>

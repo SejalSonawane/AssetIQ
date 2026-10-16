@@ -1,20 +1,26 @@
 using AssetIQ.Business.Interfaces;
+using AssetIQ.Web.Authorization;
 using AssetIQ.Web.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AssetIQ.Web.Controllers;
 
+[Authorize(Policy = AssetIQPolicies.EquipmentRead)]
 public class EquipmentController : Controller
 {
     private readonly IEquipmentService _equipmentService;
     private readonly IRollingMillDatasetAccessor _datasetAccessor;
+    private readonly IRiskClassificationModelService _riskClassificationModelService;
 
     public EquipmentController(
         IEquipmentService equipmentService,
-        IRollingMillDatasetAccessor datasetAccessor)
+        IRollingMillDatasetAccessor datasetAccessor,
+        IRiskClassificationModelService riskClassificationModelService)
     {
         _equipmentService = equipmentService;
         _datasetAccessor = datasetAccessor;
+        _riskClassificationModelService = riskClassificationModelService;
     }
 
     [HttpGet]
@@ -61,11 +67,15 @@ public class EquipmentController : Controller
 
         var snapshot = await _datasetAccessor.GetSnapshotAsync(cancellationToken);
         var equipment = await _equipmentService.GetByCodeAsync(id, cancellationToken);
+        var mlPrediction = equipment is null
+            ? null
+            : await _riskClassificationModelService.PredictEquipmentAsync(id, cancellationToken);
 
         return View(new EquipmentDetailViewModel
         {
             DatasetStatus = DatasetStatusViewModel.FromSnapshot(snapshot),
             Equipment = equipment,
+            MachineLearningPrediction = mlPrediction,
             NotFoundCode = equipment is null ? id : null
         });
     }

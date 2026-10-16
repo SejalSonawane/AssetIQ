@@ -10,5 +10,7 @@ public class EnergyRecord
     public DateTime PeriodEndUtc { get; set; }
     public decimal? ProductionOutput { get; set; }
     public string? ProductionUnit { get; set; }
+    public Guid? SourceRowId { get; set; }
     public Equipment? Equipment { get; set; }
+    public CsvImportBatchRow? SourceRow { get; set; }
 }

@@ -20,6 +20,7 @@ public class DashboardSummaryDto
     public Validation.DatasetQualityReport? QualityReport { get; init; }
     public IReadOnlyList<RecentActivityDto> RecentMaintenance { get; init; } = Array.Empty<RecentActivityDto>();
     public IReadOnlyList<PriorityAssetDto> PriorityAssets { get; init; } = Array.Empty<PriorityAssetDto>();
+    public RiskModelEvaluationDto? RiskModelEvaluation { get; init; }
 }
 
 public class RiskBucketDto

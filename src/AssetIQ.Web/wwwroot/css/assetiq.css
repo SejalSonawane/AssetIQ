@@ -40,6 +40,16 @@ body.assetiq-app {
     margin-bottom: 1rem;
 }
 
+.brand-logo {
+    display: block;
+    width: 3.5rem;
+    height: 3.5rem;
+    flex: 0 0 3.5rem;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 0.35rem;
+}
+
 .brand-mark {
     width: 2.5rem;
     height: 2.5rem;
@@ -140,6 +150,39 @@ body.assetiq-app {
     justify-content: space-between;
     gap: 1rem;
     flex-wrap: wrap;
+}
+
+.account-app {
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    padding: 1.25rem;
+}
+
+.account-shell {
+    width: min(100%, 27rem);
+}
+
+.account-card {
+    padding: 2rem;
+    background: #fff;
+    border: 1px solid var(--aiq-border);
+    border-radius: 0.75rem;
+    box-shadow: 0 0.75rem 2rem rgba(15, 32, 58, 0.1);
+}
+
+.account-logo {
+    display: block;
+    width: 7rem;
+    height: auto;
+    margin: 0 auto 1.25rem;
+}
+
+.account-footer {
+    margin: 1rem 0 0;
+    color: var(--aiq-slate);
+    font-size: 0.8rem;
+    text-align: center;
 }
 
 .alert-demo {

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - AssetIQ</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/assetiq.css" asp-append-version="true" />
+</head>
+<body class="assetiq-app account-app">
+    <main class="account-shell">
+        <section class="account-card" aria-label="AssetIQ account">
+            <img class="account-logo" src="~/Images/logoblack.png" alt="Hindalco AssetIQ" />
+            @RenderBody()
+        </section>
+        <p class="account-footer">AssetIQ &mdash; Industrial Asset Intelligence Platform</p>
+    </main>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

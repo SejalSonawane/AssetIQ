@@ -28,9 +28,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEquipmentService, EquipmentService>();
         services.AddScoped<IAlertService, AlertService>();
         services.AddScoped<IEnergyAnalyticsService, EnergyAnalyticsService>();
+        services.AddSingleton<IRiskClassificationModelService, RiskClassificationModelService>();
         services.AddScoped<IPredictiveMaintenanceService, PredictiveMaintenanceService>();
+        services.AddScoped<IPredictionResultSyncService, PredictionResultSyncService>();
         services.AddScoped<IFailureAnalyticsService, FailureAnalyticsService>();
         services.AddScoped<IMaintenanceWorkOrderService, MaintenanceWorkOrderService>();
+        services.AddScoped<IMaintenanceTicketService, MaintenanceTicketService>();
+        services.AddScoped<IRollingMillCsvImportService, RollingMillCsvImportService>();
         services.AddSingleton<IMaintenanceActionService, MaintenanceActionService>();
         services.AddSingleton<IEquipmentRepository, InMemoryEquipmentRepository>();
 

@@ -25,6 +25,8 @@ public sealed class MaintenanceListViewModel
     public DatasetStatusViewModel DatasetStatus { get; init; } = new();
     public IReadOnlyList<MaintenanceWorkOrderDto> WorkOrders { get; init; } = Array.Empty<MaintenanceWorkOrderDto>();
     public IReadOnlyList<MaintenanceApplicationActionDto> Actions { get; init; } = Array.Empty<MaintenanceApplicationActionDto>();
+    public IReadOnlyList<MaintenanceTicketDto> Tickets { get; init; } = Array.Empty<MaintenanceTicketDto>();
+    public IReadOnlyList<MaintenanceTicketEquipmentOptionDto> TicketEquipment { get; init; } = Array.Empty<MaintenanceTicketEquipmentOptionDto>();
     public IReadOnlyList<EquipmentRecordDto> ActionEquipment { get; init; } = Array.Empty<EquipmentRecordDto>();
     public string? Search { get; init; }
     public string? SelectedStatus { get; init; }

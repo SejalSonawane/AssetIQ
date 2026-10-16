@@ -10,9 +10,27 @@ public class RollingMillCsvIntegrationTests
 {
     private static string GetCsvPath(string fileName = "AssetIQ_RollingMill_500Rows.csv")
     {
-        var dir = AppContext.BaseDirectory;
-        var path = Path.GetFullPath(Path.Combine(dir, "..", "..", "..", "..", "..", "data", "rolling-mill", fileName));
-        return path;
+        var root = FindWorkspaceRoot();
+        return Path.Combine(root, "data", "rolling-mill", fileName);
+    }
+
+    private static string FindWorkspaceRoot()
+    {
+        foreach (var startPath in new[] { AppContext.BaseDirectory, Environment.CurrentDirectory })
+        {
+            var directory = new DirectoryInfo(startPath);
+            while (directory is not null)
+            {
+                if (File.Exists(Path.Combine(directory.FullName, "AssetIQ.slnx")))
+                {
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+        }
+
+        throw new DirectoryNotFoundException("Could not locate AssetIQ.slnx for CSV integration tests.");
     }
 
     [Fact]
@@ -56,7 +74,10 @@ public class RollingMillCsvIntegrationTests
         var path = GetCsvPath();
         var options = Options.Create(new DatasetOptions { RollingMillCsvPath = path, PlantDisplayName = "Test dataset" });
         var accessor = new RollingMillDatasetAccessor(new RollingMillCsvReader(), options);
-        var service = new DashboardService(accessor);
+        // var service = new DashboardService(accessor);
+        // var modelService = new RiskClassificationModelService();
+        var modelService = new RiskClassificationModelService(accessor);
+        var service = new DashboardService(accessor, modelService);
 
         var summary = await service.GetSummaryAsync();
 
@@ -126,7 +147,10 @@ public class RollingMillCsvIntegrationTests
         Assert.Equal(540, snapshot.QualityReport.HighRiskCount);
         Assert.Equal(759, snapshot.QualityReport.MediumRiskCount);
 
-        var dashboard = await new DashboardService(accessor).GetSummaryAsync();
+        // var dashboard = await new DashboardService(accessor).GetSummaryAsync();
+        // var modelService = new RiskClassificationModelService();
+        var modelService = new RiskClassificationModelService(accessor);
+        var dashboard = await new DashboardService(accessor, modelService).GetSummaryAsync();
         Assert.Equal(2000, dashboard.TotalEquipment);
         Assert.Equal(701, dashboard.CriticalRiskCount);
         Assert.Equal(540, dashboard.HighRiskCount);
@@ -141,7 +165,8 @@ public class RollingMillCsvIntegrationTests
         Assert.Equal(280839.44m, energy.TotalProductionTons);
         Assert.Equal(expectedIntensity, energy.PlantIntensityKwhPerTon);
 
-        var predictive = await new PredictiveMaintenanceService(accessor).GetSummaryAsync();
+        // var predictive = await new PredictiveMaintenanceService(accessor).GetSummaryAsync();
+        var predictive = await new PredictiveMaintenanceService(accessor, modelService).GetSummaryAsync();
         Assert.Equal(1241, predictive.FlaggedAssetCount);
 
         var failures = await new FailureAnalyticsService(accessor).GetSummaryAsync();

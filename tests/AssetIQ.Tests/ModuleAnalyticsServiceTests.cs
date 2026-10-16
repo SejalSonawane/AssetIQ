@@ -10,10 +10,29 @@ public class ModuleAnalyticsServiceTests
 {
     private static RollingMillDatasetAccessor CreateAccessor()
     {
-        var dir = AppContext.BaseDirectory;
-        var path = Path.GetFullPath(Path.Combine(dir, "..", "..", "..", "..", "..", "data", "rolling-mill", "AssetIQ_RollingMill_500Rows.csv"));
+        var root = FindWorkspaceRoot();
+        var path = Path.Combine(root, "data", "rolling-mill", "AssetIQ_RollingMill_500Rows.csv");
         var options = Options.Create(new DatasetOptions { RollingMillCsvPath = path, PlantDisplayName = "Test dataset" });
         return new RollingMillDatasetAccessor(new RollingMillCsvReader(), options);
+    }
+
+    private static string FindWorkspaceRoot()
+    {
+        foreach (var startPath in new[] { AppContext.BaseDirectory, Environment.CurrentDirectory })
+        {
+            var directory = new DirectoryInfo(startPath);
+            while (directory is not null)
+            {
+                if (File.Exists(Path.Combine(directory.FullName, "AssetIQ.slnx")))
+                {
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+        }
+
+        throw new DirectoryNotFoundException("Could not locate AssetIQ.slnx for CSV analytics tests.");
     }
 
     [Fact]
@@ -34,7 +53,8 @@ public class ModuleAnalyticsServiceTests
     public async Task PredictiveMaintenanceService_FlagsNonMonitorAssets()
     {
         var accessor = CreateAccessor();
-        var service = new PredictiveMaintenanceService(accessor);
+        var ml = new RiskClassificationModelService(accessor);
+        var service = new PredictiveMaintenanceService(accessor, ml);
         var summary = await service.GetSummaryAsync();
 
         Assert.True(summary.IsDatasetValid);
@@ -42,6 +62,22 @@ public class ModuleAnalyticsServiceTests
         Assert.Equal(500, summary.TotalAssets);
         Assert.All(summary.FlaggedAssets, a => Assert.NotEqual("Monitor", a.Equipment.MaintenanceRecommendation));
         Assert.Contains(summary.FlaggedAssets, a => a.Equipment.EquipmentCode == "RM-1002");
+        Assert.True(summary.ModelEvaluation.IsAvailable);
+        Assert.Equal(500, summary.MachineLearningAgreementCount + summary.MachineLearningDisagreementCount);
+    }
+
+    [Fact]
+    public async Task RiskClassificationModelService_TrainsAndEvaluatesOn500RowCsv()
+    {
+        var accessor = CreateAccessor();
+        var service = new RiskClassificationModelService(accessor);
+        var evaluation = await service.GetEvaluationAsync();
+
+        Assert.True(evaluation.IsAvailable);
+        Assert.True(evaluation.TrainingRowCount > 0);
+        Assert.True(evaluation.HoldoutRowCount > 0);
+        Assert.InRange(evaluation.MacroAccuracy, 0, 1);
+        Assert.NotEmpty(evaluation.FeatureKeys);
     }
 
     [Fact]

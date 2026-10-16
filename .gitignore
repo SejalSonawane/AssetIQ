@@ -49,3 +49,11 @@ coverage/
 
 # Local environment-specific settings
 appsettings.*.local.json
+
+# Local application settings
+src/AssetIQ.Web/appsettings.Local.json
+
+# Local database exports
+*.dump
+*.backup
+*.sql.bak

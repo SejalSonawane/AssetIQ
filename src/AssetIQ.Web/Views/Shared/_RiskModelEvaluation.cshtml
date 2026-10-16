@@ -1,0 +1,58 @@
+@model AssetIQ.Business.DTOs.RiskModelEvaluationDto
+@if (Model is null)
+{
+    return;
+}
+
+<div class="panel-card mb-4">
+    <div class="panel-header">
+        <h2 class="h6 mb-0">ML risk classifier (holdout evaluation)</h2>
+        <span class="small text-muted">@Model.ModelIdentifier @Model.ModelVersion</span>
+    </div>
+    <div class="panel-body small">
+        @if (!Model.IsAvailable)
+        {
+            <p class="text-warning mb-0">Model unavailable: @Model.UnavailableReason</p>
+        }
+        else
+        {
+            <p class="mb-2">
+                Target: <strong>@Model.TargetKey</strong> — @Model.TargetDescription
+            </p>
+            <dl class="row mb-3">
+                <dt class="col-sm-3">Training rows</dt><dd class="col-sm-3">@Model.TrainingRowCount</dd>
+                <dt class="col-sm-3">Holdout rows</dt><dd class="col-sm-3">@Model.HoldoutRowCount</dd>
+                <dt class="col-sm-3">Macro accuracy</dt><dd class="col-sm-3">@Model.MacroAccuracy.ToString("P1")</dd>
+                <dt class="col-sm-3">Micro accuracy</dt><dd class="col-sm-3">@Model.MicroAccuracy.ToString("P1")</dd>
+                <dt class="col-sm-3">Log loss</dt><dd class="col-sm-3">@Model.LogLoss.ToString("F3")</dd>
+            </dl>
+            @if (Model.PerClassMetrics.Count > 0)
+            {
+                <div class="table-responsive mb-2">
+                    <table class="table table-sm assetiq-table mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Class</th>
+                                <th scope="col">Precision</th>
+                                <th scope="col">Recall</th>
+                                <th scope="col">F1</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.PerClassMetrics)
+                            {
+                                <tr>
+                                    <td>@row.ClassName</td>
+                                    <td>@row.Precision.ToString("P1")</td>
+                                    <td>@row.Recall.ToString("P1")</td>
+                                    <td>@row.F1Score.ToString("P1")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            <p class="text-muted mb-0">@Model.Limitations</p>
+        }
+    </div>
+</div>

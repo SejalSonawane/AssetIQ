@@ -8,5 +8,7 @@ public class FailureRecord
     public DateTime OccurredAtUtc { get; set; }
     public decimal? DowntimeHours { get; set; }
     public decimal? EstimatedCostImpact { get; set; }
+    public Guid? SourceRowId { get; set; }
     public Equipment? Equipment { get; set; }
+    public CsvImportBatchRow? SourceRow { get; set; }
 }

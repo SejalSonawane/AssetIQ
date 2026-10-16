@@ -6,5 +6,6 @@ public class EquipmentDetailViewModel
 {
     public DatasetStatusViewModel DatasetStatus { get; init; } = new();
     public EquipmentRecordDto? Equipment { get; init; }
+    public EquipmentRiskPredictionDto? MachineLearningPrediction { get; init; }
     public string? NotFoundCode { get; init; }
 }

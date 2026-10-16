@@ -9,7 +9,7 @@
 @if (Model.DatasetStatus.IsValid)
 {
     <div class="alert alert-warning py-2 small" role="note">
-        Imported recommendations below are read-only CSV fields, not created work orders. Application actions are stored in memory for this running app instance only; they are shared by its users and cleared on restart. No historical maintenance events are created.
+        Imported recommendations below are read-only CSV fields, not created work orders. Application actions remain temporary in-memory records. Persisted tickets are stored in the AssetIQ PostgreSQL database and are distinct from imported recommendations.
     </div>
 
     @if (TempData["MaintenanceActionMessage"] is string message)
@@ -41,6 +41,53 @@
                 </div>
                 <div class="col-lg-2">
                     <button type="submit" class="btn btn-primary">Create action</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="panel-card mb-3">
+        <div class="panel-header"><h2 class="h6 mb-0">Create maintenance ticket</h2><span class="small text-muted">Persisted to PostgreSQL</span></div>
+        <div class="panel-body">
+            <form asp-action="CreateTicket" method="post" class="row g-3 align-items-end">
+                <div class="col-lg-4">
+                    <label class="form-label" for="ticketEquipmentCode">Equipment</label>
+                    <select class="form-select" id="ticketEquipmentCode" name="equipmentCode" required>
+                        <option value="">Select persisted equipment</option>
+                        @foreach (var equipment in Model.TicketEquipment)
+                        {
+                            <option value="@equipment.EquipmentCode">@equipment.EquipmentCode · @equipment.EquipmentTypeKey · @equipment.Section</option>
+                        }
+                    </select>
+                    @if (Model.TicketEquipment.Count == 0)
+                    {
+                        <div class="form-text text-warning">Import CSV via Settings before creating tickets.</div>
+                    }
+                </div>
+                <div class="col-lg-4">
+                    <label class="form-label" for="ticketDescription">Description</label>
+                    <input class="form-control" id="ticketDescription" name="description" maxlength="300" required />
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label" for="ticketPriority">Priority</label>
+                    <select class="form-select" id="ticketPriority" name="priority" required>
+                        <option value="">Select priority</option>
+                        @foreach (var priority in Model.Priorities)
+                        {
+                            <option value="@priority">@priority</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label" for="ticketAssignedTo">Assignee</label>
+                    <input class="form-control" id="ticketAssignedTo" name="assignedTo" maxlength="200" placeholder="User or team" />
+                </div>
+                <div class="col-lg-3">
+                    <label class="form-label" for="ticketScheduledAt">Due date</label>
+                    <input class="form-control" id="ticketScheduledAt" name="scheduledAtUtc" type="datetime-local" />
+                </div>
+                <div class="col-lg-9 text-end">
+                    <button type="submit" class="btn btn-primary">Create ticket</button>
                 </div>
             </form>
         </div>
@@ -82,6 +129,68 @@
                                         <form asp-action="CompleteAction" method="post">
                                             <input type="hidden" name="id" value="@action.Id" />
                                             <button type="submit" class="btn btn-sm btn-outline-success">Mark complete</button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="panel-card mb-3">
+        <div class="panel-header">
+            <h2 class="h6 mb-0">Persisted maintenance tickets (@Model.Tickets.Count)</h2>
+            <span class="small text-muted">PostgreSQL records</span>
+        </div>
+        @if (Model.Tickets.Count == 0)
+        {
+            <div class="p-3 text-muted">No maintenance tickets have been created yet.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover assetiq-table mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Equipment</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Priority</th>
+                            <th scope="col">Assignee</th>
+                            <th scope="col">Due</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Created</th>
+                            <th scope="col">Completion notes</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ticket in Model.Tickets)
+                        {
+                            <tr>
+                                <td><a asp-controller="Equipment" asp-action="Details" asp-route-id="@ticket.EquipmentCode">@ticket.EquipmentCode</a><div class="small text-muted">@ticket.EquipmentTypeKey · @ticket.Section</div></td>
+                                <td>@ticket.Title</td>
+                                <td><span class="badge risk-@ticket.Priority.ToLowerInvariant()">@ticket.Priority</span></td>
+                                <td class="small">@ticket.AssignedTo</td>
+                                <td class="small">@ticket.ScheduledAtUtc?.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@ticket.Status</td>
+                                <td class="small">@ticket.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td class="small">@ticket.CompletionNotes</td>
+                                <td>
+                                    @if (ticket.Status != "Completed")
+                                    {
+                                        <form asp-action="UpdateTicketStatus" method="post" class="d-flex flex-column gap-2">
+                                            <input type="hidden" name="id" value="@ticket.Id" />
+                                            <select class="form-select form-select-sm" name="status">
+                                                <option value="Open" selected="@(ticket.Status == "Open")">Open</option>
+                                                <option value="In Progress" selected="@(ticket.Status == "In Progress")">In Progress</option>
+                                                <option value="Completed">Completed</option>
+                                            </select>
+                                            <input class="form-control form-control-sm" name="assignedTo" maxlength="200" placeholder="Assignee (optional)" value="@ticket.AssignedTo" />
+                                            <input class="form-control form-control-sm" name="completionNotes" maxlength="1000" placeholder="Completion notes" />
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
                                         </form>
                                     }
                                 </td>
@@ -169,9 +278,8 @@
                 <thead>
                     <tr>
                         <th scope="col">Equipment</th>
-                        <th scope="col">Equipment</th>
-                        <th scope="col">Priority</th>
-                        <th scope="col">Status</th>
+                        <th scope="col">Risk level</th>
+                        <th scope="col">Mapped status</th>
                         <th scope="col">Recommendation</th>
                         <th scope="col">Days since maint.</th>
                         <th scope="col">Source</th>
@@ -185,7 +293,7 @@
                                 <a asp-controller="Equipment" asp-action="Details" asp-route-id="@wo.EquipmentCode">@wo.EquipmentCode</a>
                                 <div class="small text-muted">@wo.EquipmentTypeKey · @wo.Section</div>
                             </td>
-                            <td><span class="badge risk-@wo.Priority.ToLowerInvariant()">@wo.Priority</span></td>
+                            <td><span class="badge risk-@wo.RiskLevel.ToLowerInvariant()">@wo.RiskLevel</span></td>
                             <td class="small">@wo.Status</td>
                             <td class="small">@wo.Recommendation</td>
                             <td>@wo.MaintenanceDaysAgo.ToString("F0")</td>
